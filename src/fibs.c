@@ -7,15 +7,17 @@
 // certain header file contents on GNU/Linux systems.
 #define _DEFAULT_SOURCE
 
+#include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
-#include <stdint.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fts.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include <unistd.h>
 
 // err.h contains various nonstandard BSD extensions, but they are
 // very handy.
@@ -30,11 +32,11 @@ pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // A simple recursive (inefficient) implementation of the Fibonacci
 // function.
-int fib (int n) {
+int fib(int n) {
   if (n < 2) {
     return 1;
   } else {
-    return fib(n-1) + fib(n-2);
+    return fib(n - 1) + fib(n - 2);
   }
 }
 
@@ -51,12 +53,12 @@ void fib_line(const char *line) {
 
 // Each thread will run this function.  The thread argument is a
 // pointer to a job queue.
-void* worker(void *arg) {
+void *worker(void *arg) {
   struct job_queue *jq = arg;
 
   while (1) {
     char *line;
-    if (job_queue_pop(jq, (void**)&line) == 0) {
+    if (job_queue_pop(jq, (void **)&line) == 0) {
       fib_line(line);
       free(line);
     } else {
@@ -70,7 +72,7 @@ void* worker(void *arg) {
   return NULL;
 }
 
-int main(int argc, char * const *argv) {
+int main(int argc, char *const *argv) {
   int num_threads = 1;
 
   if (argc == 3 && strcmp(argv[1], "-n") == 0) {
@@ -99,13 +101,12 @@ int main(int argc, char * const *argv) {
     }
   }
 
-
   // Now read lines from stdin until EOF.
   char *line = NULL;
   ssize_t line_len;
   size_t buf_len = 0;
   while ((line_len = getline(&line, &buf_len, stdin)) != -1) {
-    job_queue_push(&jq, (void*)strdup(line));
+    job_queue_push(&jq, (void *)strdup(line));
   }
   free(line);
 

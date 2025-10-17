@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "codelldb",
+            "request": "launch",
+            "name": "C",
+            "expressions": "native",
+            "program": "${workspaceFolder}/${fileBasenameNoExtension}",
+            "args": ["1"],
+            "stdio": ["fib-test.txt", null, null],
+            "runInTerminal": true
+        }
+    ]
+}

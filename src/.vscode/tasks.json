@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compile",
+            "type": "shell",
+            "command": "make"
+        },
+        {
+            "label": "Compile G++",
+            "type": "shell",
+            "command": "make"
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "make clean"
+        }
+    ]
+}
