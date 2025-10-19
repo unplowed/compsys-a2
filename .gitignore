@@ -1,7 +1,8 @@
+# ignore anything without an extension
+src/*
+!src/**/
+!src/*.*
+
 # ignore object files
 *.o
 
-# ignore anything without an extension
-*
-!/**/
-!*.*
