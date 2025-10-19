@@ -2,14 +2,14 @@
 // certain header file contents on GNU/Linux systems.
 #define _DEFAULT_SOURCE
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fts.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 // err.h contains various nonstandard BSD extensions, but they are
 // very handy.
@@ -41,14 +41,14 @@ int fauxgrep_file(char const *needle, char const *path) {
   return 0;
 }
 
-int main(int argc, char * const *argv) {
+int main(int argc, char *const *argv) {
   if (argc < 2) {
     err(1, "usage: STRING paths...");
     exit(1);
   }
 
   char const *needle = argv[1];
-  char * const *paths = &argv[2];
+  char *const *paths = &argv[2];
 
   // FTS_LOGICAL = follow symbolic links
   // FTS_NOCHDIR = do not change the working directory of the process

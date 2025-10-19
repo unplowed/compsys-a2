@@ -2,14 +2,14 @@
 // certain header file contents on GNU/Linux systems.
 #define _DEFAULT_SOURCE
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fts.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 // err.h contains various nonstandard BSD extensions, but they are
 // very handy.
@@ -25,14 +25,13 @@ static pthread_mutex_t print_lock = PTHREAD_MUTEX_INITIALIZER;
 // Struct
 struct search_queue {
   struct job_queue *job_q;
-  const char *needle; 
+  const char *needle;
 };
 
-int fauxgrep_file_mt(const char *needle, const char *path)
-{
+int fauxgrep_file_mt(const char *needle, const char *path) {
   FILE *file = fopen(path, "r");
 
-  if(file == NULL){
+  if (file == NULL) {
     warn("failed to open %s", path);
     return -1;
   }
@@ -41,18 +40,15 @@ int fauxgrep_file_mt(const char *needle, const char *path)
   size_t linelen = 0;
   int lineno = 1;
 
-  while(getline(&line, &linelen,file) != -1)
-  {
-    if(strstr(line,needle) != NULL)
-    {
+  while (getline(&line, &linelen, file) != -1) {
+    if (strstr(line, needle) != NULL) {
       int rc = pthread_mutex_lock(&print_lock);
       // Locking and unlocking mutex
       assert(rc == 0);
-      printf("%s:%d:%s", path, lineno,line);
+      printf("%s:%d:%s", path, lineno, line);
 
       rc = pthread_mutex_unlock(&print_lock);
       assert(rc == 0);
-
     }
     lineno++;
   }
@@ -61,35 +57,31 @@ int fauxgrep_file_mt(const char *needle, const char *path)
   return 0;
 }
 
-void *worker_threads(void *arg)
-{
+void *worker_threads(void *arg) {
   struct search_queue *sq_ptr = arg;
 
-  while(1)
-  {
+  while (1) {
     char *next_path;
-    if(job_queue_pop(sq_ptr->job_q,(void **)&next_path) == 0)
-    {
+    if (job_queue_pop(sq_ptr->job_q, (void **)&next_path) == 0) {
       fauxgrep_file_mt(sq_ptr->needle, next_path);
       free(next_path);
-    }else{
+    } else {
       break;
     }
   }
   return NULL;
 }
 
-
-int main(int argc, char * const *argv) {
+int main(int argc, char *const *argv) {
   if (argc < 2) {
     err(1, "usage: [-n INT] STRING paths...");
     exit(1);
   }
 
-  // Init variables 
+  // Init variables
   int num_threads = 1;
   char const *needle = argv[1];
-  char * const *paths = &argv[2];
+  char *const *paths = &argv[2];
 
   if (argc > 3 && strcmp(argv[1], "-n") == 0) {
     // Since atoi() simply returns zero on syntax errors, we cannot
@@ -112,9 +104,9 @@ int main(int argc, char * const *argv) {
     paths = &argv[2];
   }
 
-  //assert(0); 
-  // Initialise the job queue and some worker threads here.
-  
+  // assert(0);
+  //  Initialise the job queue and some worker threads here.
+
   struct job_queue job_q;
   job_queue_init(&job_q, 64);
 
@@ -125,17 +117,14 @@ int main(int argc, char * const *argv) {
 
   // Init worker threads
   pthread_t *threads = calloc(num_threads, sizeof(pthread_t));
-  for(int i = 0; i < num_threads; i++)
-  {
-    if(pthread_create(&threads[i], NULL, worker_threads, sqp)!=0)
-    {
-      err(1,"pthread_create() failed");
+  for (int i = 0; i < num_threads; i++) {
+    if (pthread_create(&threads[i], NULL, worker_threads, sqp) != 0) {
+      err(1, "pthread_create() failed");
     }
   }
 
   //------implementing programs here-----
 
-  
   // JOB QUEUE
 
   // FTS_LOGICAL = follow symbolic links
@@ -146,27 +135,27 @@ int main(int argc, char * const *argv) {
   int fts_options = FTS_LOGICAL | FTS_NOCHDIR;
 
   // File traversal setup
-  FTS *ftsp = fts_open(paths, fts_options,NULL);
+  FTS *ftsp = fts_open(paths, fts_options, NULL);
   if (ftsp == NULL) {
     err(1, "fts_open() failed");
   }
- 
+
   // Traversing the directory tree
   FTSENT *p;
   while ((p = fts_read(ftsp)) != NULL) {
     switch (p->fts_info) {
     case FTS_D:
       break;
-    case FTS_F:
-      {char *copy = strdup(p->fts_path);
-      if(!copy) err(1,"strdup failed");
-      if (job_queue_push(sqp->job_q, copy) != 0)
-      {
+    case FTS_F: {
+      char *copy = strdup(p->fts_path);
+      if (!copy)
+        err(1, "strdup failed");
+      if (job_queue_push(sqp->job_q, copy) != 0) {
         warn("job_queue_push failed");
         free(copy);
       }
       break;
-      }
+    }
     default:
       break;
     }
@@ -174,15 +163,13 @@ int main(int argc, char * const *argv) {
 
   fts_close(ftsp);
 
-  //assert(0); 
-  // Shut down the job queue and the worker threads here.
+  // assert(0);
+  //  Shut down the job queue and the worker threads here.
   //-----------shutting down job queue and worker threads.
   job_queue_destroy(sqp->job_q);
 
-  for (int i = 0; i < num_threads; i++)
-  {
-    if(pthread_join(threads[i], NULL) != 0)
-    {
+  for (int i = 0; i < num_threads; i++) {
+    if (pthread_join(threads[i], NULL) != 0) {
       err(1, "pthread_join() failed");
     }
   }

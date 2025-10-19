@@ -17,9 +17,7 @@ static void move_lines(int n) {
 }
 
 // Clear from cursor to end of line.
-static void clear_line() {
-  printf("\033[K");
-}
+static void clear_line() { printf("\033[K"); }
 
 // Print a visual representation of a histogram to the screen.  After
 // printing, the cursor is moved back to the beginning of the output.
@@ -37,7 +35,7 @@ static void print_histogram(int histogram[8]) {
     printf("Bit %d: ", i);
 
     double proportion = histogram[i] / ((double)bits_seen);
-    for (int i = 0; i < 60*proportion; i++) {
+    for (int i = 0; i < 60 * proportion; i++) {
       printf("*");
     }
     printf("\n");
@@ -62,7 +60,7 @@ static void update_histogram(int histogram[8], unsigned char byte) {
   // For all bits in a byte...
   for (int i = 0; i < 8; i++) {
     // count if bit 'i' is set.
-    if (byte & (1<<i)) {
+    if (byte & (1 << i)) {
       histogram[i]++;
     }
   }

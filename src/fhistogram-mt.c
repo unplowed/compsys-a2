@@ -2,15 +2,14 @@
 // certain header file contents on GNU/Linux systems.
 #define _DEFAULT_SOURCE
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
-#include <stdint.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fts.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "job_queue.h"
 
@@ -22,14 +21,14 @@ pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #include "histogram.h"
 
-int main(int argc, char * const *argv) {
+int main(int argc, char *const *argv) {
   if (argc < 2) {
     err(1, "usage: paths...");
     exit(1);
   }
 
   int num_threads = 1;
-  char * const *paths = &argv[1];
+  char *const *paths = &argv[1];
 
   if (argc > 3 && strcmp(argv[1], "-n") == 0) {
     // Since atoi() simply returns zero on syntax errors, we cannot
