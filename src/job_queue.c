@@ -70,7 +70,7 @@ int job_queue_destroy(struct job_queue *job_queue) {
   assert(pthread_cond_destroy(job_queue->cond_job_popped) == 0);
   assert(pthread_mutex_destroy(job_queue->mutex) == 0);
 
-  // freeding allocated memory
+  // freeing allocated memory
   free(job_queue->cond_job_pushed);
   free(job_queue->cond_job_popped);
   free(job_queue->mutex);
@@ -135,7 +135,7 @@ int job_queue_pop(struct job_queue *job_queue, void **data) {
     return -1;
   }
 
-  // Dequeue Data fra job_queue (LIFO Style)
+  // Dequeue Data from job_queue (LIFO Style)
   *data = job_queue->data[--job_queue->size];
 
   // Signal to pusher that it there is space & destroy() to progress towards
