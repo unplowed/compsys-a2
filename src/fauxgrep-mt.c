@@ -19,7 +19,7 @@
 
 #include "job_queue.h"
 
-// Global mutex
+/*Global mutex - prints to stdout*/  
 static pthread_mutex_t print_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // Struct
@@ -28,6 +28,21 @@ struct search_queue {
   const char *needle;
 };
 
+/*
+fauxgrep_file_mt:
+---------------------------------------------------------------
+Opens the file at 'path' reads it line-by-line, checks whether
+each line has a match for the 'needle'.
+
+ - Input:
+   needle: substring to search for by each line.
+   path: filestystem path to a regular text file.
+
+- Output:
+  returns 0 --> succes (File is scanned, regardless if match found).
+  returns -1 --> failure (File could not be opened)
+ 
+*/
 int fauxgrep_file_mt(const char *needle, const char *path) {
   FILE *file = fopen(path, "r");
 
@@ -41,9 +56,10 @@ int fauxgrep_file_mt(const char *needle, const char *path) {
   int lineno = 1;
 
   while (getline(&line, &linelen, file) != -1) {
+    // strstr() finds 'needle' as a substring anywhere in line.
     if (strstr(line, needle) != NULL) {
-      int rc = pthread_mutex_lock(&print_lock);
       // Locking and unlocking mutex
+      int rc = pthread_mutex_lock(&print_lock);
       assert(rc == 0);
       printf("%s:%d:%s", path, lineno, line);
 
@@ -52,20 +68,33 @@ int fauxgrep_file_mt(const char *needle, const char *path) {
     }
     lineno++;
   }
+  // Cleanup of allocated ressources.
   free(line);
   fclose(file);
   return 0;
 }
+
+/*
+*worker_threads
+_______________________________
+Keeps dequeing (.pop) path from the job queue and runs fauxgrep_file_mt() on it.
+Popped path is freed by the worker once done.
+When job_queue_pop() indicates that theres no more work --> loop is exited and NULL is returned.
+
+  
+*/
 
 void *worker_threads(void *arg) {
   struct search_queue *sq_ptr = arg;
 
   while (1) {
     char *next_path;
+    // when job_queue_pop() == 0 --> success, calls fauxgrep_file_mt()
     if (job_queue_pop(sq_ptr->job_q, (void **)&next_path) == 0) {
       fauxgrep_file_mt(sq_ptr->needle, next_path);
       free(next_path);
     } else {
+      // No more jobs to be processed
       break;
     }
   }
@@ -78,10 +107,10 @@ int main(int argc, char *const *argv) {
     exit(1);
   }
 
-  // Init variables
-  int num_threads = 1;
-  char const *needle = argv[1];
-  char *const *paths = &argv[2];
+  // init default variables
+  int num_threads = 1;  // default -> 1 single worker thread
+  char const *needle = argv[1]; // needle position
+  char *const *paths = &argv[2]; // path
 
   if (argc > 3 && strcmp(argv[1], "-n") == 0) {
     // Since atoi() simply returns zero on syntax errors, we cannot
@@ -104,7 +133,6 @@ int main(int argc, char *const *argv) {
     paths = &argv[2];
   }
 
-  // assert(0);
   //  Initialise the job queue and some worker threads here.
 
   struct job_queue job_q;
@@ -115,7 +143,10 @@ int main(int argc, char *const *argv) {
   sqp->job_q = &job_q;
   sqp->needle = needle;
 
-  // Init worker threads
+  /* 
+  Starting worker threads
+  -----------------------
+  */
   pthread_t *threads = calloc(num_threads, sizeof(pthread_t));
   for (int i = 0; i < num_threads; i++) {
     if (pthread_create(&threads[i], NULL, worker_threads, sqp) != 0) {
@@ -141,15 +172,17 @@ int main(int argc, char *const *argv) {
   }
 
   // Traversing the directory tree
+  // Iterating entries, push regular files as jobs
   FTSENT *p;
   while ((p = fts_read(ftsp)) != NULL) {
     switch (p->fts_info) {
     case FTS_D:
       break;
-    case FTS_F: {
+    case FTS_F: {   // regular file --> enqueue a job
       char *copy = strdup(p->fts_path);
       if (!copy)
         err(1, "strdup failed");
+      // Pushing the job. On failure --> give warning and free allocated ressources.  
       if (job_queue_push(sqp->job_q, copy) != 0) {
         warn("job_queue_push failed");
         free(copy);
@@ -161,13 +194,14 @@ int main(int argc, char *const *argv) {
     }
   }
 
+  // Closing the travelsal handling
   fts_close(ftsp);
 
-  // assert(0);
-  //  Shut down the job queue and the worker threads here.
-  //-----------shutting down job queue and worker threads.
+
+  // shutting down job queue and worker threads.
   job_queue_destroy(sqp->job_q);
 
+  // Awaiting for all workers to finish current jobs and exit
   for (int i = 0; i < num_threads; i++) {
     if (pthread_join(threads[i], NULL) != 0) {
       err(1, "pthread_join() failed");
